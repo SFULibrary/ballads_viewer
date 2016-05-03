@@ -17,20 +17,12 @@
  *   The Drupal form definition.
  */
 function ballads_viewer_admin(array $form, array &$form_state) {
-  $form['ballads_viewer_prettify'] = array(
+  
+  $form['ballads_viewer_linkxml'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Prettify'),
-    '#description' => t('Prettify the XML markup with <a href="https://github.com/google/code-prettify">Google Javascript code prettifier</a>.'),
-    '#default_value' => variable_get('ballads_viewer_prettify', TRUE),
+    '#title' => t('Link to source'),
+    '#description' => t('Link to the source XML.'),
+    '#default_value' => variable_get('ballads_viewer_linkxml', TRUE),
   );
-  $form['ballads_viewer_prettify_skin'] = array(
-    '#title' => t('Skin'),
-    '#type' => 'textfield',
-    '#size' => 20,
-    '#default_value' => variable_get('ballads_viewer_prettify_skin', ''),
-    '#description' => t('See the <a href="https://rawgit.com/google/code-prettify/master/styles/index.html">kin gallery</a> for examples. Enter one of "desert", "sunburst", "doxy", etc. here. Leave blank for default.'),
-    '#maxlength' => 50,
-  );
-
   return system_settings_form($form);
 }

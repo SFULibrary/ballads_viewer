@@ -10,9 +10,9 @@
  */
 function ballads_viewer_menu() {
   return array(
-    'admin/islandora/islandora_viewers/simple_xml' => array(
-      'title' => 'Simple XML Viewer',
-      'description' => 'Configure the Simple XML viewer.',
+    'admin/islandora/islandora_viewers/ballads_viewer' => array(
+      'title' => 'Ballads XML Viewer',
+      'description' => 'Configure the Ballads viewer.',
       'page callback' => 'drupal_get_form',
       'access arguments' => array('administer site configuration'),
       'page arguments' => array('ballads_viewer_admin'),
@@ -29,7 +29,7 @@ function ballads_viewer_theme() {
   return array(
     'ballads_viewer' => array(
       'file' => 'theme/theme.inc',
-      'template' => 'theme/islandora-simple-xml-viewer',
+      'template' => 'theme/ballads-viewer',
       'variables' => array(
         'islandora_object' => NULL,
       ),
@@ -42,13 +42,14 @@ function ballads_viewer_theme() {
  */
 function ballads_viewer_islandora_viewer_info() {
   return array(
-    'islandora_simple_xml' => array(
-      'label' => t('Islandora Simple XML Viewer'),
-      'description' => t('A simple XML viewer for Islandora.'),
-      'configuration' => 'admin/islandora/islandora_viewers/simple_xml',
+    'ballads_viewer' => array(
+      'label' => t('Ballads XML Viewer'),
+      'description' => t('A simple XML viewer for the Lyrical Ballads.'),
+      'configuration' => 'admin/islandora/islandora_viewers/ballads_viewer',
       'callback' => 'ballads_viewer_callback',
       'model' => array(
-        'islandora:sp_simple_xml'),
+        'islandora:sp_simple_xml'
+      ),
       'mimetype' => array('application/xml'),
     ),
   );

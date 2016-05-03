@@ -1,5 +1,5 @@
-name = "Islandora Simple XML Viewer"
-description = "Implements a very simple XML viewer for Islandora."
+name = "Ballads Viewer"
+description = "Implements a very simple XML viewer for a transcription of Lyrical Ballads, by Wordsworth and Colleridge."
 package = Islandora Viewers
 version = 7.x-dev
 core = 7.x

@@ -9,6 +9,5 @@
  * Implements hook_uninstall().
  */
 function ballads_viewer_uninstall() {
-  variable_del('ballads_viewer_prettify');
-  variable_del('ballads_viewer_prettify_skin');
+  variable_del('ballads_viewer_linkxml');
 }
