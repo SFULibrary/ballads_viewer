@@ -16,6 +16,4 @@ function ballads_viewer_preprocess_ballads_viewer(array &$variables) {
 
   $path = drupal_get_path('module', 'ballads_viewer');
   drupal_add_css($path . '/css/ballads.css');
-  drupal_add_js($path . '/js/ballads.js');
-  
 }
