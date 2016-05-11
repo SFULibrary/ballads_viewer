@@ -5,6 +5,9 @@
  * Defines all the hooks this module implements.
  */
 
+define('BALLADS_VIEWER_MIN_FONT_PX', 8);
+define('BALLADS_VIEWER_PX_PER_MM', 8.0);
+
 /**
  * Implements hook_menu().
  */
@@ -96,19 +99,33 @@ function ballads_viewer_islandora_collectioncmodel_islandora_view_object(Abstrac
   }
 }
 
+/**
+ * Convert a mm measurement (as found in a rend attribute) to a px measurement.
+ * 
+ * @param string $rend The contents of the render attribute
+ * @param boolean $isFont If true, then the minimum font size is applied.
+ * 
+ * @return string The converted measurement with 'px' appended.
+ */
 function mmToPx($rend, $isFont) {
   $matches = array();
   if (!preg_match('/([0-9.]+)mm/i', $rend, $matches)) {
     error_log('unparseable measurement ' . $rend);
   }
   if ($isFont) {
-    return max(array(8, 8.0 * $matches[1])) . 'px';
+    return max(array(BALLADS_VIEWER_MIN_FONT_PX, BALLADS_VIEWER_PX_PER_MM * $matches[1])) . 'px';
   }
   else {
-    return 8 * $matches[1] . 'px';
+    return BALLADS_VIEWER_PX_PER_MM * $matches[1] . 'px';
   }
 }
 
+/**
+ * Convert a rend attribute to a CSS style.
+ * 
+ * @param string $rend Contents of the rend attribute.
+ * @return string|null The converted CSS style or null if the attribute is unparseable.
+ */
 function rendToStyle($rend) {
   $matches = array();
   if (!preg_match('/^([a-z][a-z0-9-]*)/i', $rend, $matches)) {
@@ -145,21 +162,38 @@ function rendToStyle($rend) {
   }
 }
 
-// mangle the html for the table of contents here.
-// also mangle the html for the images here.
 // @TODO check that this is only being applied to the correct drupal pages.
+// @TODO how do I get the proper address of the solr engine?
+/**
+ * Implements hook_islandora_view_object_alter to fix the problems in the HTML
+ * caused by the limitations of XSLT 1.0. Fixes the following things:
+ * 
+ * The src attribute on image element.
+ * 
+ * Converts TEI rend attributes (stored in data-rend) to CSS styles.
+ * 
+ * Fixes links in the table of contents by finding the corresponding Islandora
+ * object based on its MODS identifier.
+ * 
+ * @param TuqueObject $$object The object being viewed
+ * @param Array $rendered The drupal render array.
+ */
 function ballads_viewer_islandora_view_object_alter(&$object, &$rendered) {
   if (!isset($rendered['']) || !isset($rendered['']['#markup'])) {
     return;
   }
-  $dom = new DOMDocument();
+  // $rendered contains serialized XHTML. It must be parsed before it can be
+  // mangled with XPath.
   // loadHTML expects ISO-Latin-1. Add an encoding decl to get it right.
-  error_log($rendered['']['#markup']);
+  $dom = new DOMDocument();
   $dom->loadHTML('<?xml encoding="UTF-8">' . $rendered['']['#markup']);
+  
+  // fix image links.
   foreach ($dom->getElementsByTagName('img') as $img) {
     $img->setAttribute('src', '/islandora/object/' . $object->id . '/' . $img->getAttribute('src'));
   }
 
+  // fix nodes with TEI rend attributes.
   $xp = new DOMXpath($dom);
   foreach ($xp->query('//*[@data-rend]') as $node) {
     $rend = $node->getAttribute('data-rend');
@@ -168,6 +202,7 @@ function ballads_viewer_islandora_view_object_alter(&$object, &$rendered) {
     $node->removeAttribute('data-rend');
   }
 
+  // fix the Table of Contents.
   foreach ($xp->query('//a[@class="toc-link"]') as $node) {
     global $base_url;
     $filename = $node->getAttribute('href');
