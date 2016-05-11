@@ -24,3 +24,18 @@ ul.toc li {
   text-indent: -1em;
   padding-left: 1em;
 }
+
+.ballads-tbl {
+    width: 50%;
+    border: none;
+}
+
+.ballads-tbl tr, .ballads-tbl td {
+    border: none;
+    background: none;
+}
+
+p.footnote {
+    font-size: 80%;
+    margin-top: 20px;
+}

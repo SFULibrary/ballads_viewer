@@ -158,12 +158,10 @@ function rendToStyle($rend) {
 
     default:
         error_log('unknown rendering: ' . $rend);
-      return;
+      return NULL;
   }
 }
 
-// @TODO check that this is only being applied to the correct drupal pages.
-// @TODO how do I get the proper address of the solr engine?
 /**
  * Implements hook_islandora_view_object_alter to fix the problems in the HTML
  * caused by the limitations of XSLT 1.0. Fixes the following things:
@@ -175,16 +173,24 @@ function rendToStyle($rend) {
  * Fixes links in the table of contents by finding the corresponding Islandora
  * object based on its MODS identifier.
  * 
- * @param TuqueObject $$object The object being viewed
+ * @param AbstractObject $$object The object being viewed
  * @param Array $rendered The drupal render array.
  */
 function ballads_viewer_islandora_view_object_alter(&$object, &$rendered) {
   if (!isset($rendered['']) || !isset($rendered['']['#markup'])) {
     return;
   }
+  $mods = new DOMDocument();
+  $mods->loadXML($object['MODS']->content);
+  $modsXp = new DOMXpath($mods);
+  $modsXp->registerNamespace('mods', 'http://www.loc.gov/mods/v3');
+  $gm = $modsXp->query('//mods:identifier[@type="group_membership"]');
+  if($gm->length === 0 || $gm->item(0)->textContent !== 'ca.sfu.lib.ballads') {
+    return;
+  }
+  
   // $rendered contains serialized XHTML. It must be parsed before it can be
-  // mangled with XPath.
-  // loadHTML expects ISO-Latin-1. Add an encoding decl to get it right.
+  // mangled with XPath. loadHTML expects ISO-Latin-1. Add an encoding.
   $dom = new DOMDocument();
   $dom->loadHTML('<?xml encoding="UTF-8">' . $rendered['']['#markup']);
   
@@ -206,12 +212,19 @@ function ballads_viewer_islandora_view_object_alter(&$object, &$rendered) {
   foreach ($xp->query('//a[@class="toc-link"]') as $node) {
     global $base_url;
     $filename = $node->getAttribute('href');
-    // @TODO figure out the SOLR server address.
-    $result = file_get_contents("http://142.58.130.243:8080/solr/select?version=1.2&wt=json&json.nl=map&q=mods_identifier_ms:%22{$filename}%22&rows=1&fl=PID&omitHeader=true");
+    $solrBase = variable_get('islandora_solr_url', 'http://localhost:8080/solr');
+    $result = file_get_contents("{$solrBase}/select?version=1.2&wt=json&json.nl=map&q=mods_identifier_original_filename_ms:%22{$filename}%22&rows=1&fl=PID&omitHeader=true");
     $json = json_decode($result, TRUE);
     $PID = $json['response']['docs'][0]['PID'];
     $node->setAttribute('href', "/islandora/object/{$PID}");
   }
 
-  $rendered['']['#markup'] = $dom->saveHTML();
+  if(variable_get('ballads_viewer_linkxml', false)) {
+    $rendered['']['#markup'] = "<a class='ballads-source' href='/islandora/object/{$object->id}/datastream/OBJ/view'>XML</a>";
+  } else {
+    $rendered['']['#markup'] = '';
+  }
+  
+  $rendered['']['#markup'] .= $dom->saveHTML();
+  
 }
