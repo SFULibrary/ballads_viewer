@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Theme template file for the Islandora Simple XML Viewer.
+ * Theme template file for the Ballads Viewer.
  */
 
 ?>
