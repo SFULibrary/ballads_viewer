@@ -14,7 +14,9 @@ just one example.
 Enable this module, then select it as a viewer in the XML Solution Pack's admin
 settings.
 
-No additional software or libraries need to be installed.
+No additional software or libraries need to be installed. And example XSLT is 
+included in ballads.xsl which can be set as a collection or object level 
+RENDER_STYLESHEET.
 
 ## Maintainer
 
