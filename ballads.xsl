@@ -131,8 +131,8 @@
     </xsl:template>
     
     <xsl:template match="tei:figure">
-        <hr>
-            <xsl:apply-templates select="@*"/>
+        <hr class="{@type}">
+            <xsl:apply-templates select="@*[name()!='type']"/>
         </hr>
     </xsl:template>
     
@@ -161,8 +161,9 @@
     </xsl:template>
     
     <xsl:template match="tei:list">
+		<xsl:apply-templates select="tei:head" />
         <ul class="{@type}">
-            <xsl:apply-templates />
+            <xsl:apply-templates select="tei:item" />
         </ul>
     </xsl:template>
     
