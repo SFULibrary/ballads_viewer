@@ -78,28 +78,6 @@ function ballads_viewer_callback(array $params, IslandoraFedoraObject $islandora
 }
 
 /**
- * Implements hook_cmodel_pid_islandora_view_object().
- *
- * Called only when showing the root of the ballads, I think.
- */
-function ballads_viewer_islandora_collectioncmodel_islandora_view_object(AbstractObject $object) {
-  if (!isset($object['OPTIONS'])) {
-    return;
-  }
-  $options = parse_ini_string($object['OPTIONS']->content, TRUE);
-  if (!isset($options['lyrical_ballads_viewer']) ||
-      !isset($options['lyrical_ballads_viewer']['redirect_collection']) ||
-      !$options['lyrical_ballads_viewer']['redirect_collection']) {
-    return;
-  }
-
-  if (isset($options['lyrical_ballads_viewer']['collection_id']) && $options['lyrical_ballads_viewer']['collection_id'] === $object->id) {
-    $index_pid = $options['lyrical_ballads_viewer']['index_pid'];
-    drupal_goto('/islandora/object/' . $index_pid);
-  }
-}
-
-/**
  * Applies an XSLT transform to an XML string. Copy of 
  * https://github.com/mjordan/islandora_solution_pack_xml/blob/7.x/includes/utilities.inc#L19
  *
