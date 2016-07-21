@@ -143,7 +143,10 @@
     </xsl:template>
     
     <xsl:template match="tei:p">
-        <p><xsl:apply-templates/></p>
+        <p>
+			<xsl:apply-templates select="@*"/>
+			<xsl:apply-templates/>
+		</p>
     </xsl:template>
     
     <xsl:template match="tei:ptr">
