@@ -1,11 +1,7 @@
 <?php
-
 /**
  * @file
  * Theme template file for the Ballads Viewer.
  */
-
 ?>
-<div id="islandora-simple-xml">
-  <?php print $islandora_content; ?>
-</div>
+<?php print $ballads_viewer_content; ?>

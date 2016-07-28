@@ -13,16 +13,16 @@
  * 
  * @return string The converted measurement with 'px' appended.
  */
-function mmToPx($rend, $isFont) {
+function balladviewer_convert_mm($rend, $isFont) {
   $matches = array();
   if (!preg_match('/([0-9.]+)mm/i', $rend, $matches)) {
     error_log('unparseable measurement ' . $rend);
   }
   if ($isFont) {
-    return max(array(BALLADS_VIEWER_MIN_FONT_PX, BALLADS_VIEWER_PX_PER_MM * $matches[1])) . 'px';
+    return max(array(variable_get('ballads_viewer_min_font_px', '8.0'), variable_get('ballads_viewer_mmpx_ratio', '8.0') * $matches[1])) . 'px';
   }
   else {
-    return BALLADS_VIEWER_PX_PER_MM * $matches[1] . 'px';
+    return variable_get('ballads_viewer_mmpx_ratio', '8.0') * $matches[1] . 'px';
   }
 }
 
@@ -32,105 +32,140 @@ function mmToPx($rend, $isFont) {
  * @param string $rend Contents of the rend attribute.
  * @return string|null The converted CSS style or null if the attribute is unparseable.
  */
-function rendToStyle($rend) {
+function balladviewer_convert_rends($rend) {
   $matches = array();
   if (!preg_match('/^([a-z][a-z0-9-]*)/i', $rend, $matches)) {
-    error_log('unparseable rendering ' . $rend);
+	if(variable_get('ballads_viewer_debug', FALSE)) {
+	  dsm('unparseable rendering: ' . $rend);
+	} else {
+	  error_log('unparseable rendering: ' . $rend);
+	}
     return NULL;
   }
   switch (strtolower($matches[1])) {
     case 'center':
     case 'centre':
       return 'text-align: center';
-
     case 'italic':
     case 'italics':
       return 'font-style: italic';
-
     case 'roman':
       return 'font-style: normal';
-
     case 'uppercase':
       return 'text-transform: uppercase';
-
     case 'font-size':
-      return 'font-size: ' . mmToPx($rend, TRUE);
-
+      return 'font-size: ' . balladviewer_convert_mm($rend, TRUE);
     case 'indent':
-      return 'margin-left: ' . mmToPx($rend, FALSE);
-
+      return 'margin-left: ' . balladviewer_convert_mm($rend, FALSE);
     case 'length':
-      return 'width: ' . mmToPx($rend, FALSE);
-
+      return 'width: ' . balladviewer_convert_mm($rend, FALSE);
     default:
-        error_log('unknown rendering: ' . $rend);
+	if(variable_get('ballads_viewer_debug', FALSE)) {
+	  dsm('unknown rendering: ' . $rend);
+	} else {
+	  error_log('unknown rendering: ' . $rend);
+	}
       return NULL;
   }
 }
 
 /**
- * Implements hook_preprocess_theme().
+ * Find the appropriate render stylesheet for the object. If the object
+ * has a RENDER_STYLESHEET datastream, use it. If not, look at the parent
+ * collections and use the first one found.
  * 
- * Post-processes the DOM to fix the problems in the HTML
- * caused by the limitations of XSLT 1.0. Fixes the following things:
+ * @TODO will this have unpredictable results if the object has multiple
+ * parents with different RENDER_STYLESHEET datastreams?
  * 
- * The src attribute on image element.
- * 
- * Converts TEI rend attributes (stored in data-rend) to CSS styles.
- * 
- * Fixes links in the table of contents by finding the corresponding Islandora
- * object based on its MODS identifier.
+ * @param IslandoraFedoraObject $islandora_object
  */
-function ballads_viewer_preprocess_ballads_viewer(array &$variables) {
-  $path = drupal_get_path('module', 'ballads_viewer');
-  drupal_add_css($path . '/css/ballads.css');
-
-  if (!isset($variables['islandora_object'])) {
-    return;
+function balladviewer_find_render_stylesheet($islandora_object) {
+  if($islandora_object['RENDER_STYLESHEET']) {
+	return $islandora_object['RENDER_STYLESHEET']->content;
   }
-
-  $islandora_object = $variables['islandora_object'];
-  $variables['parent_collections'] = islandora_get_parents_from_rels_ext($islandora_object);
-  $obj_xml_content = $islandora_object['OBJ']->content;
-
-  $object_render_stylesheet = null;
-  if ($islandora_object['RENDER_STYLESHEET']) {
-    $object_render_stylesheet = $islandora_object['RENDER_STYLESHEET']->content;
-  } elseif ($variables['parent_collections'][0]['RENDER_STYLESHEET']) {
-    $object_render_stylesheet = $variables['parent_collections'][0]['RENDER_STYLESHEET']->content;
-  }
-
-  if ($object_render_stylesheet === null) {
-    dsm("No configured stylesheet.");
-    $variables['islandora_content'] = '<pre>' . htmlspecialchars($obj_xml_content) . '</pre>';
-    return;
-  }
-  module_load_include('inc', 'islandora_solution_pack_xml', 'includes/utilities');
-  $xml_dom = ballads_viewer_apply_xslt($object_render_stylesheet, $obj_xml_content, true);
   
-  // fix image links.
+  module_load_include('inc', 'islandora', 'includes/utilities');
+  
+  $parent_collections = islandora_get_parents_from_rels_ext($islandora_object);
+  foreach($parent_collections as $parent) {
+	if($parent['RENDER_STYLESHEET']) {
+	  return $parent['RENDER_STYLESHEET']->content;
+	}
+  }
+  return null;
+}
+
+/**
+ * Transform the XML with the XSL.
+ * 
+ * @param string $xml_src
+ * @param string $xsl_src
+ * @return DOMDocument
+ */
+function balladviewer_apply_stylesheet($xml_src, $xsl_src) {
+  if($xsl_src === null) {
+	return null;
+  }
+  $xml_dom = new DOMDocument();
+  $xml_dom->loadXML($xml_src);
+  $xsl_dom = new DOMDocument();
+  $xsl_dom->loadXML($xsl_src);
+  
+  $proc = new XSLTProcessor();
+  $proc->importStylesheet($xsl_dom);
+  $result = $proc->transformToDoc($xml_dom);
+  return $result;
+}
+
+/**
+ * Apply some post-processing to the transformed XML: 
+ *  - cleans up image URLs because the XSL doesn't know about islandora URLs
+ *  - converts @data-rend attributes to @style attributes with CSS.
+ * 
+ * @param DOMDocument $xml_dom
+ * @param string $obj_id
+ */
+function balladviewer_postprocess($xml_dom, $obj_id) {
   foreach ($xml_dom->getElementsByTagName('img') as $img) {
-    $img->setAttribute('src', '/islandora/object/' . $islandora_object->id . '/' . $img->getAttribute('src'));
+    $img->setAttribute('src', '/islandora/object/' . $obj_id . '/' . $img->getAttribute('src'));
   }
-  
+ 
   // fix nodes with TEI rend attributes.
   $xp = new DOMXpath($xml_dom);
   foreach ($xp->query('//*[@data-rend]') as $node) {
     $rend = $node->getAttribute('data-rend');
-    $styles = array_map('rendToStyle', preg_split('/\s+/', $rend));
+    $styles = array_map('balladviewer_convert_rends', preg_split('/\s+/', $rend));
     $node->setAttribute('style', implode('; ', $styles));
     $node->removeAttribute('data-rend');
   }  
   
-    // fix the Table of Contents.
+  // fix the Table of Contents.
+  $solrBase = variable_get('islandora_solr_url', 'http://localhost:8080/solr');
   foreach ($xp->query('//*[@class="toc-link"]') as $node) {
     $filename = $node->getAttribute('href');
-    $solrBase = variable_get('islandora_solr_url', 'http://localhost:8080/solr');
     $result = file_get_contents("{$solrBase}/select?version=1.2&wt=json&json.nl=map&q=mods_identifier_original_filename_ms:%22{$filename}%22&rows=1&fl=PID&omitHeader=true");
     $json = json_decode($result, TRUE);
     $PID = $json['response']['docs'][0]['PID'];
     $node->setAttribute('href', "/islandora/object/{$PID}");
   }
+}
+
+/**
+ * Implements hook_preprocess_theme().
+ */
+function ballads_viewer_preprocess_ballads_viewer(array &$variables) {
+  $path = drupal_get_path('module', 'ballads_viewer');
+  drupal_add_css($path . '/css/ballads.css');
+  $islandora_object = $variables['islandora_object'];
   
-  $variables['islandora_content'] = $xml_dom->saveXML();
+  $xml_src = $islandora_object['OBJ']->content;
+  $xsl_src = balladviewer_find_render_stylesheet($islandora_object);
+  if($xsl_src === null) {
+	dsm("No stylesheet found. Displaying the raw XML.");
+	$variables['islandora_content'] = '<pre>' . htmlspecialchars($xml_src) . '</pre>';
+	return;
+  }
+  $result = balladviewer_apply_stylesheet($xml_src, $xsl_src);
+  balladviewer_postprocess($result, $islandora_object->id);
+  $variables['ballads_viewer_content'] = $result->saveXML();
 }

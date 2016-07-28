@@ -5,23 +5,20 @@
  * Defines all the hooks this module implements.
  */
 
-define('BALLADS_VIEWER_MIN_FONT_PX', 8);
-define('BALLADS_VIEWER_PX_PER_MM', 8.0);
-
 /**
  * Implements hook_menu().
  */
 function ballads_viewer_menu() {
   return array(
-    'admin/islandora/islandora_viewers/ballads_viewer' => array(
-      'title' => 'Ballads XML Viewer',
-      'description' => 'Configure the Ballads viewer.',
-      'page callback' => 'drupal_get_form',
-      'access arguments' => array('administer site configuration'),
-      'page arguments' => array('ballads_viewer_admin'),
-      'file' => 'includes/admin.form.inc',
-      'type' => MENU_NORMAL_ITEM,
-    ),
+	'admin/islandora/islandora_viewers/ballads_viewer' => array(
+	  'title' => 'Ballads XML Viewer',
+	  'description' => 'Configure the Lyrical Ballads viewer.',
+	  'page callback' => 'drupal_get_form',
+	  'page arguments' => array('ballads_viewer_admin'),
+	  'access arguments' => array('administer site configuration'),
+	  'file' => 'includes/admin.form.inc',
+	  'type' => MENU_NORMAL_ITEM,
+	)
   );
 }
 
@@ -31,11 +28,12 @@ function ballads_viewer_menu() {
 function ballads_viewer_theme() {
   return array(
     'ballads_viewer' => array(
-      'file' => 'theme/theme.inc',
-      'template' => 'theme/ballads_viewer',
-      'variables' => array(
-        'islandora_object' => NULL,
-      ),
+	  'file' => 'theme/theme.inc',
+	  'template' => 'theme/ballads_viewer',
+      'variables' => array(		
+		'islandora_object' => NULL,
+		'ballads_viewer_content' => '',
+	  ),
     ),
   );
 }
@@ -69,78 +67,16 @@ function ballads_viewer_islandora_viewer_info() {
  * @return string
  *   HTML repersentation of the Simple XML Viewer.
  */
-function ballads_viewer_callback(array $params, IslandoraFedoraObject $islandora_object = NULL) {
-  if (isset($islandora_object['OBJ']) && $islandora_object['OBJ']->mimetype == 'application/xml') {
-    if (islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $islandora_object['OBJ'])) {
-      return theme('ballads_viewer', array('islandora_object' => $islandora_object));
-    }
+function ballads_viewer_callback(array $params, IslandoraFedoraObject $islandora_object = null) {
+  if( ! isset($islandora_object['OBJ']) || $islandora_object['OBJ']->mimetype !== 'application/xml') {
+	return;
   }
-}
-
-/**
- * Applies an XSLT transform to an XML string. Copy of 
- * https://github.com/mjordan/islandora_solution_pack_xml/blob/7.x/includes/utilities.inc#L19
- *
- * @param string $xslt
- *   An XSLT stylesheet.
- * @param string $input_xml
- *   An XML string.
- * @param boolean $dom
- *   If true, a DOM will be returned instead of a string.
- *
- * @return string|DOM
- *   The transformed XML.
- */
-function ballads_viewer_apply_xslt($xslt, $input_xml, $dom=false) {
-  try {
-    $xsl_doc = new DOMDocument();
-    $xsl_doc->loadXML($xslt);
-    $xml_doc = new DOMDocument();
-    $xml_doc->loadXML($input_xml);
-    $xslt_proc = new XSLTProcessor();
-    $xslt_proc->importStylesheet($xsl_doc);    
-    if($dom) {
-      return $xslt_proc->transformToDoc($xml_doc);
-    } else {
-      return $xslt_proc->transformToXML($xml_doc);
-    }
+  if( ! islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $islandora_object['OBJ'])) {
+      return;
   }
-  catch (Exception $e) {
-    $success = array(
-      'success' => FALSE,
-      'messages' => array(
-        array(
-          'message' => t('Failed to apply XSL transform.'),
-          'type' => 'watchdog',
-          'severity' => WATCHDOG_ERROR,
-        ),
-      ),
-    );
-  }
-}
-
-/**
- * Implements hook_islandora_view_object_alter to add a link to the XML source
- * of a ballad, based on the ballads_viewer_linkxml drupal variable.
- *  
- * @param AbstractObject $$object The object being viewed
- * @param Array $rendered The drupal render array.
- */
-function ballads_viewer_islandora_view_object_alter(&$object, &$rendered) {
-  if (!isset($rendered['']) || !isset($rendered['']['#markup'])) {
-    return;
-  }
-  $mods = new DOMDocument();
-  $mods->loadXML($object['MODS']->content);
-  $modsXp = new DOMXpath($mods);
-  $modsXp->registerNamespace('mods', 'http://www.loc.gov/mods/v3');
-  $gm = $modsXp->query('//mods:identifier[@type="group_membership"]');
-  if($gm->length === 0 || $gm->item(0)->textContent !== 'ca.sfu.lib.ballads') {
-    return;
-  }
-  
-  if(variable_get('ballads_viewer_linkxml', false)) {
-    $rendered['']['#markup'] = "<a class='ballads-source' href='/islandora/object/{$object->id}/datastream/OBJ/view'>XML</a>" . $rendered['']['#markup'];
-  }
-  
+  $markup = theme('ballads_viewer', array(
+	'islandora_object' => $islandora_object,
+	'ballads_viewer_content' => '',
+  ));
+  return $markup;  
 }
