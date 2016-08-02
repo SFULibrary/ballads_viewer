@@ -1,38 +1,38 @@
 div.work {
-	width: 700px;
+    width: 700px;
 }
 
 div.pb {
-	clear: both;
+    clear: both;
 }
 
 span.spacer {
-	display: inline-block;
-	width: 330px;
+    display: inline-block;
+    width: 330px;
 }
 
 span.line {
-	display: block;
+    display: block;
 }
 
 p.pagenumber {
-	text-align: center;
+    text-align: center;
 }
 
 img.facs {
-	float: right;
-	width: 300px;
-	height: 540px;
-	margin: 16px;
+    float: right;
+    width: 300px;
+    height: 540px;
+    margin: 16px;
 }
 
 ul.toc {
-	list-style: none;
+    list-style: none;
 }
 
 ul.toc li {
-	text-indent: -1em;
-	padding-left: 1em;
+    text-indent: -1em;
+    padding-left: 1em;
 }
 
 .ballads-tbl {
@@ -41,8 +41,12 @@ ul.toc li {
 }
 
 .ballads-tbl tr, .ballads-tbl td {
-    border: none;
+    border: none !important;
     background: none;
+}
+
+a.footnote {
+    text-decoration: none;
 }
 
 p.footnote {
@@ -51,6 +55,6 @@ p.footnote {
 }
 
 hr {
-	margin-left: auto !important;
-	margin-right: auto !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }

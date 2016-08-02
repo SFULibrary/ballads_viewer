@@ -31,9 +31,9 @@ function ballads_viewer_theme() {
 	  'file' => 'theme/theme.inc',
 	  'template' => 'theme/ballads_viewer',
       'variables' => array(		
-		'islandora_object' => NULL,
-		'ballads_viewer_content' => '',
-	  ),
+        'islandora_object' => NULL,
+        'ballads_viewer_content' => null,
+      ),
     ),
   );
 }
@@ -72,11 +72,11 @@ function ballads_viewer_callback(array $params, IslandoraFedoraObject $islandora
 	return;
   }
   if( ! islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $islandora_object['OBJ'])) {
-      return;
+    return;
   }
   $markup = theme('ballads_viewer', array(
-	'islandora_object' => $islandora_object,
-	'ballads_viewer_content' => '',
+    'islandora_object' => $islandora_object,
+    'ballads_viewer_content' => '',
   ));
   return $markup;  
 }
