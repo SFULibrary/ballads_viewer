@@ -170,4 +170,9 @@ function ballads_viewer_preprocess_ballads_viewer(array &$variables) {
   $result = ballads_viewer_apply_stylesheet($xml_src, $xsl_src);
   ballads_viewer_postprocess($result, $islandora_object->id);
   $variables['ballads_viewer_content'] = $result->saveXML();
+  if(variable_get('ballads_viewer_linkxml', false)) {
+    $variables['ballads_viewer_linkxml'] = url('/islandora/object/' . $islandora_object->id . '/datastream/OBJ/view');
+  } else {
+    $variables['ballads_viewer_linkxml'] = false;
+  }
 }
